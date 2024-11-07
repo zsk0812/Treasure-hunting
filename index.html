@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寻宝</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            width: 30px;
+            height: 30px;
+            border: 1px solid black;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .player {
+            background-color: red;
+        }
+        .gold {
+            background-color: yellow;
+        }
+        #result {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+        #result img {
+            width: 600px; 
+            margin-right: 20px;
+        }
+        #result p {
+            font-size: 24px; /* 放大字体 */
+        }
+    </style>
+</head>
+<body>
+    <table id="board">
+        <!-- 生成15x15的棋盘 -->
+        <!-- 使用JavaScript来生成棋盘的HTML -->
+        <script>
+            const boardSize = 15;
+            const boardElement = document.getElementById('board');
+            for (let y = 0; y < boardSize; y++) {
+                const row = boardElement.insertRow();
+                for (let x = 0; x < boardSize; x++) {
+                    row.insertCell();
+                }
+            }
+        </script>
+    </table>
+
+    <div id="result"></div>
+
+    <script>
+        let player = {
+            x: 7,
+            y: 7
+        };
+
+        // 生成金点
+        const items = [
+            { name: '线索', image: 'clue.jpg' },
+            { name: '宝藏', image: 'treasure.jpg' },
+            { name: '守卫', image: 'guard.jpg' },
+            { name: '物资', image: 'supply.jpg' }
+        ];
+        const goldPoints = [];
+        for (let i = 0; i < 10; i++) {
+            const x = Math.floor(Math.random() * boardSize);
+            const y = Math.floor(Math.random() * boardSize);
+            const item = items[Math.floor(Math.random() * items.length)];
+            if (item.name === '宝藏' && goldPoints.filter(point => point.item.name === '宝藏').length < 2) {
+                goldPoints.push({ x, y, item });
+            } else if (item.name !== '宝藏') {
+                goldPoints.push({ x, y, item });
+            }
+        }
+
+        let gameEnded = false;
+
+        function updateBoard() {
+            if (gameEnded) return;
+            const board = document.getElementById('board');
+            for (let y = 0; y < boardSize; y++) {
+                for (let x = 0; x < boardSize; x++) {
+                    const cell = board.rows[y].cells[x];
+                    cell.classList.remove('player', 'gold');
+                    if (player.x === x && player.y === y) {
+                        cell.classList.add('player');
+                    }
+                    if (goldPoints.some(point => point.x === x && point.y === y)) {
+                        cell.classList.add('gold');
+                    }
+                }
+            }
+        }
+
+        function movePlayer(direction) {
+            if (gameEnded) return;
+            switch (direction) {
+                case 'w':
+                    if (player.y > 0) player.y--;
+                    break;
+                case 's':
+                    if (player.y < boardSize - 1) player.y++;
+                    break;
+                case 'a':
+                    if (player.x > 0) player.x--;
+                    break;
+                case 'd':
+                    if (player.x < boardSize - 1) player.x++;
+                    break;
+            }
+            updateBoard();
+            checkCollision();
+        }
+
+        function checkCollision() {
+            if (gameEnded) return;
+            const point = goldPoints.find(point => point.x === player.x && point.y === player.y);
+            if (point) {
+                const resultElement = document.getElementById('result');
+                resultElement.innerHTML = `<img src="${point.item.image}" alt="${point.item.name}" width="300"><p>你找到了一个金点！里面是：${point.item.name}</p>`;
+                if (point.item.name === '守卫') {
+                    setTimeout(() => {
+                        alert('守卫开始追击！');
+                        // 在这里添加守卫追击的逻辑
+                        gameEnded = true;
+                        resultElement.innerHTML = `<img src="guard_attack.jpg" alt="守卫" width="300"><p>任务失败！</p>`;
+                    }, 1000);
+                } else if (point.item.name === '宝藏') {
+                    alert('恭喜你找到了宝藏！游戏结束！');
+                    gameEnded = true;
+                    resultElement.innerHTML = `<img src="treasure_found.jpg" alt="宝藏" width="300"><p>恭喜!你找到了传说中的宝藏!</p>`;
+                }
+                updateBoard();
+            }
+        }
+
+        async function showStartImages() {
+            const startImages = [
+                { image: 'library.jpg', text: '你在古老的图书馆里找到了第一个线索...' },
+                { image: 'decode.jpg', text: '解码成功!宝藏在一座古老的神庙中...' },
+                { image: 'start.jpg', text: '开始寻宝！' }
+            ];
+
+            for (const startImage of startImages) {
+                const resultElement = document.getElementById('result');
+                resultElement.innerHTML = `<img src="${startImage.image}" alt="开始图片" width="300"><p>${startImage.text}</p>`;
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒
+            }
+        }
+
+        async function findTreasure() {
+            await showStartImages();
+
+            document.addEventListener('keydown', (event) => {
+                movePlayer(event.key);
+            });
+
+            updateBoard();
+        }
+
+        findTreasure();
+    </script>
+</body>
+</html>
